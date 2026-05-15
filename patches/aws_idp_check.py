@@ -21,7 +21,7 @@ AWS_REGION        = 'us-east-1'
 # Cache valid for 5 minutes
 _cache = {}
 _cache_lock = threading.Lock()
-_CACHE_TTL = 300  # seconds
+_CACHE_TTL = 3600  # 1 hour - safe since boto3 checks on first connect
 
 import time
 
@@ -126,6 +126,43 @@ def _is_in_group(idstore, group_id, email):
         log.error('AWS IDP group check error: %s' % str(e))
     return False
 
+
+def warm_cache():
+    """
+    Pre-fetch all users assigned to the VPN app and cache them.
+    Call this at startup so first connect is instant.
+    """
+    try:
+        sso_admin = boto3.client('sso-admin', region_name=AWS_REGION)
+        idstore   = boto3.client('identitystore', region_name=AWS_REGION)
+
+        paginator = sso_admin.get_paginator('list_application_assignments')
+        for page in paginator.paginate(ApplicationArn=APPLICATION_ARN):
+            for assignment in page['ApplicationAssignments']:
+                principal_id   = assignment['PrincipalId']
+                principal_type = assignment['PrincipalType']
+
+                if principal_type == 'USER':
+                    email = _get_user_email(idstore, principal_id)
+                    if email:
+                        _set_cache(email.lower(), True)
+                        log.info('AWS IDP cache warmed: %s' % email)
+
+                elif principal_type == 'GROUP':
+                    gpaginator = idstore.get_paginator('list_group_memberships')
+                    for gpage in gpaginator.paginate(
+                        IdentityStoreId=IDENTITY_STORE_ID,
+                        GroupId=principal_id,
+                    ):
+                        for member in gpage['GroupMemberships']:
+                            email = _get_user_email(idstore, member['MemberId']['UserId'])
+                            if email:
+                                _set_cache(email.lower(), True)
+                                log.info('AWS IDP cache warmed (group): %s' % email)
+
+        log.info('AWS IDP cache warm complete')
+    except Exception as e:
+        log.error('AWS IDP cache warm failed: %s' % str(e))
 
 def invalidate_cache(email=None):
     """Invalidate cache for a specific user or all users"""

@@ -2031,7 +2031,7 @@ def key_request_get():
     state = flask.request.args.get('state')
 
     tokens_collection = mongo.get_collection('key_tokens')
-    doc = tokens_collection.find_one_and_delete({
+    doc = tokens_collection.find_one({
         '_id': state,
     })
 
@@ -3422,13 +3422,13 @@ def key_ovpn_wait_post(org_id, user_id, server_id):
     sso_token = None
     if client_sso_token:
         authorized = False
-
-        for i in range(100):
+        # Poll for up to 3 minutes (900 x 0.2s) so the popup link stays alive
+        # User may open the link in a non-default browser - give them time
+        for i in range(900):
             if sso.check_token(client_sso_token, usr.id, svr.id):
                 authorized = True
                 break
             time.sleep(0.2)
-
         if not authorized:
             return flask.abort(428)
         sso_token = client_sso_token
@@ -3872,13 +3872,11 @@ def key_wg_wait_post(org_id, user_id, server_id):
     sso_token = None
     if client_sso_token:
         authorized = False
-
-        for i in range(100):
+        for i in range(900):
             if sso.check_token(client_sso_token, usr.id, svr.id):
                 authorized = True
                 break
             time.sleep(0.2)
-
         if not authorized:
             return flask.abort(428)
         sso_token = client_sso_token

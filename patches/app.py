@@ -387,6 +387,18 @@ def setup_server_cert():
         _cur_cert = settings.app.server_cert
         _cur_key = settings.app.server_key
 
+def _warm_idp_cache():
+    import threading, time
+    def _warm():
+        time.sleep(5)  # wait for mongo/settings to init
+        try:
+            from pritunl import aws_idp_check
+            aws_idp_check.warm_cache()
+        except Exception as e:
+            pass
+    t = threading.Thread(target=_warm, name='IDPCacheWarm', daemon=True)
+    t.start()
+
 def run_server():
     settings.local.admin_api = auth.admin_api_count() > 0
 
@@ -407,5 +419,7 @@ def run_server():
     _cur_admin_api = settings.local.admin_api
 
     logger.LogEntry(message='Web server started.')
+
+    _warm_idp_cache()
 
     _run_wsgi()
