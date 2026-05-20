@@ -63,6 +63,16 @@ server {
         proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
     }
 
+    location ~ ^/key/ {
+        proxy_pass https://127.0.0.1:9443;
+        proxy_ssl_verify off;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+    }
+
     location / {
         proxy_pass https://127.0.0.1:9443;
         proxy_ssl_verify off;
@@ -97,6 +107,16 @@ server {
         proxy_set_header Host 107.21.31.183;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+    }
+
+    location ~ ^/key/ {
+        proxy_pass https://127.0.0.1:9443;
+        proxy_ssl_verify off;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
     }
 

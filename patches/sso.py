@@ -1264,6 +1264,49 @@ def sso_callback_post():
     if usr.disabled:
         return flask.abort(403)
 
+    # Auto-generate proper cert if missing or has wrong subject format
+    if not usr.certificate or not usr.private_key or 'O=company' in (usr.certificate or ''):
+        import subprocess, tempfile, os, shutil
+        org_id = str(org.id)
+        user_id = str(usr.id)
+        tmp = tempfile.mkdtemp()
+        try:
+            ca_cert_path = os.path.join(tmp, 'ca.crt')
+            ca_key_path  = os.path.join(tmp, 'ca.key')
+            key_path     = os.path.join(tmp, 'user.key')
+            csr_path     = os.path.join(tmp, 'user.csr')
+            cert_path    = os.path.join(tmp, 'user.crt')
+            ext_path     = os.path.join(tmp, 'ext.cnf')
+            srl_path     = os.path.join(tmp, 'ca.srl')
+            org.write_file('ca_certificate', ca_cert_path, chmod=0o600)
+            org.write_file('ca_private_key', ca_key_path, chmod=0o600)
+            with open(srl_path, 'w') as _f: _f.write('01\n')
+            with open(ext_path, 'w') as _f:
+                _f.write('[client_ext]\nkeyUsage = critical,digitalSignature,keyEncipherment\nbasicConstraints = CA:false\nextendedKeyUsage = clientAuth\nsubjectKeyIdentifier = hash\n')
+            subprocess.run(['openssl', 'genrsa', '-out', key_path, '2048'], capture_output=True)
+            subprocess.run(['openssl', 'req', '-new', '-key', key_path,
+                '-subj', '/O=%s/CN=%s' % (org_id, user_id),
+                '-out', csr_path], capture_output=True)
+            subprocess.run(['openssl', 'x509', '-req',
+                '-in', csr_path, '-CA', ca_cert_path, '-CAkey', ca_key_path,
+                '-CAserial', srl_path, '-out', cert_path,
+                '-days', '3650', '-sha256',
+                '-extfile', ext_path, '-extensions', 'client_ext'],
+                capture_output=True)
+            v = subprocess.run(['openssl', 'verify', '-CAfile', ca_cert_path, cert_path],
+                capture_output=True, text=True)
+            if 'OK' in v.stdout:
+                usr.certificate = open(cert_path).read()
+                usr.private_key = open(key_path).read()
+                usr.commit(('certificate', 'private_key'))
+                logger.info('Auto-generated cert for SSO user', 'sso', user_name=usr.name)
+            else:
+                logger.error('Auto cert verify failed', 'sso', user_name=usr.name)
+        except Exception as _e:
+            logger.error('Auto cert generation failed', 'sso', error=str(_e))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     flask.session['sso_user_id'] = str(usr.id)
 
     # Check if this is a VPN client connect flow
