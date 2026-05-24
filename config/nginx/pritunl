@@ -21,6 +21,41 @@ server {
         return 302 https://107.21.31.183:8443/sso/callback;
     }
 
+    location = /settings {
+        proxy_pass https://127.0.0.1:9443;
+        proxy_ssl_verify off;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Validated true;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+    }
+    location = /saml/update {
+        proxy_pass http://127.0.0.1:9756;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Validated true;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+    }
+    location /saml/ {
+        proxy_pass http://127.0.0.1:9756;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+    }
+    location = /saml-settings {
+        proxy_pass http://127.0.0.1:9756;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183/saml-settings;
+    }
     location = /pritunl-admin {
         proxy_pass http://127.0.0.1:9756/login;
         proxy_http_version 1.1;
@@ -100,6 +135,23 @@ server {
         proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
     }
 
+    location = /saml-settings {
+        proxy_pass http://127.0.0.1:9756;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host 107.21.31.183;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443/saml-settings;
+    }
+    location = /saml/update {
+        proxy_pass http://127.0.0.1:9756;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header PR-Validated true;
+        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+    }
     location = /key/request {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;

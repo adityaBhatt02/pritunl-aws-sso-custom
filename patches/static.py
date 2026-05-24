@@ -151,3 +151,10 @@ def setup_get():
 @auth.open_auth
 def upgrade_get():
     return utils.redirect('')
+
+@app.app.route('/saml-settings', methods=['GET'])
+@auth.session_light_auth
+def saml_settings_get():
+    static_file = static.StaticFile(settings.conf.www_path,
+        'saml-settings.html', cache=False, gzip=False)
+    return static_file.get_response()

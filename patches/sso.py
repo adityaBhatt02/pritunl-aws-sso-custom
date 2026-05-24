@@ -1397,3 +1397,147 @@ h2{color:#e74c3c;}a{color:#428bca;}</style></head>
     redirect_url = 'https://107.21.31.183:8443' + key_link['view_url']
     logger.info('SSO user login: ' + redirect_url, 'sso')
     return flask.redirect(redirect_url)
+
+@app.app.route('/saml/update', methods=['POST'])
+@auth.open_auth
+def saml_update_post():
+    from pritunl import auth as _auth
+    if not _auth.check_session(False):
+        return flask.abort(401)
+    import json as _json, re as _re
+    data = flask.request.json or {}
+    saml_settings_path = '/etc/pritunl/saml/settings.json'
+    try:
+        with open(saml_settings_path, 'r') as f:
+            saml_conf = _json.load(f)
+    except Exception:
+        saml_conf = {}
+
+    host = flask.request.headers.get('Host', '107.21.31.183').split(':')[0]
+
+    if data.get('sso_saml_url'):
+        saml_conf.setdefault('idp', {})
+        saml_conf['idp']['singleSignOnService'] = {
+            'url': data['sso_saml_url'],
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        }
+        saml_conf['idp']['entityId'] = data.get('sso_saml_issuer_url') or data['sso_saml_url']
+    if data.get('sso_saml_issuer_url'):
+        saml_conf.setdefault('idp', {})
+        saml_conf['idp']['entityId'] = data['sso_saml_issuer_url']
+    if data.get('sso_saml_cert'):
+        saml_conf.setdefault('idp', {})
+        saml_conf['idp']['x509cert'] = data['sso_saml_cert']
+
+    saml_conf.setdefault('sp', {})
+    saml_conf['sp']['entityId'] = 'https://' + host
+    saml_conf['sp']['assertionConsumerService'] = {
+        'url': 'https://' + host + ':8443/sso/callback',
+        'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+    }
+
+    with open(saml_settings_path, 'w') as f:
+        _json.dump(saml_conf, f, indent=2)
+
+    aws_path = '/usr/lib/pritunl/usr/lib/python3.9/site-packages/pritunl/aws_idp_check.py'
+    try:
+        with open(aws_path, 'r') as f:
+            aws_content = f.read()
+        if data.get('aws_identity_store_id'):
+            aws_content = _re.sub(
+                r"IDENTITY_STORE_ID\s*=\s*'[^']*'",
+                "IDENTITY_STORE_ID = '%s'" % data['aws_identity_store_id'],
+                aws_content)
+        if data.get('aws_application_arn'):
+            aws_content = _re.sub(
+                r"APPLICATION_ARN\s*=\s*'[^']*'",
+                "APPLICATION_ARN   = '%s'" % data['aws_application_arn'],
+                aws_content)
+        if data.get('aws_region'):
+            aws_content = _re.sub(
+                r"AWS_REGION\s*=\s*'[^']*'",
+                "AWS_REGION        = '%s'" % data['aws_region'],
+                aws_content)
+        with open(aws_path, 'w') as f:
+            f.write(aws_content)
+    except Exception as e:
+        logger.warning('Failed to update aws_idp_check.py: ' + str(e), 'sso')
+
+    logger.info('SAML settings updated via UI', 'sso')
+    return utils.jsonify({'status': 'ok'})
+
+@app.app.route('/saml/config', methods=['GET'])
+@auth.session_light_auth
+def saml_config_get():
+    import json as _json
+    try:
+        with open('/etc/pritunl/saml/settings.json', 'r') as f:
+            saml = _json.load(f)
+    except Exception:
+        saml = {}
+    from pritunl import aws_idp_check as _aws
+    return utils.jsonify({
+        'sso_saml_url': (saml.get('idp') or {}).get('singleSignOnService', {}).get('url', ''),
+        'sso_saml_issuer_url': (saml.get('idp') or {}).get('entityId', ''),
+        'sso_saml_cert': (saml.get('idp') or {}).get('x509cert', ''),
+        'aws_identity_store_id': _aws.IDENTITY_STORE_ID,
+        'aws_application_arn': _aws.APPLICATION_ARN,
+        'aws_region': _aws.AWS_REGION,
+    })
+
+@app.app.route('/saml/config', methods=['PUT'])
+@auth.session_light_auth
+def saml_config_put():
+    import json as _json, re as _re
+    data = flask.request.json or {}
+    saml_path = '/etc/pritunl/saml/settings.json'
+    try:
+        with open(saml_path, 'r') as f:
+            saml = _json.load(f)
+    except Exception:
+        saml = {}
+
+    if data.get('sso_saml_url'):
+        saml.setdefault('idp', {})
+        saml['idp']['singleSignOnService'] = {
+            'url': data['sso_saml_url'],
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        }
+        saml['idp']['entityId'] = data.get('sso_saml_issuer_url') or data['sso_saml_url']
+    if data.get('sso_saml_issuer_url'):
+        saml.setdefault('idp', {})
+        saml['idp']['entityId'] = data['sso_saml_issuer_url']
+    if data.get('sso_saml_cert'):
+        saml.setdefault('idp', {})
+        saml['idp']['x509cert'] = data['sso_saml_cert']
+
+    with open(saml_path, 'w') as f:
+        _json.dump(saml, f, indent=2)
+
+    aws_path = '/usr/lib/pritunl/usr/lib/python3.9/site-packages/pritunl/aws_idp_check.py'
+    with open(aws_path, 'r') as f:
+        aws = f.read()
+    if data.get('aws_identity_store_id'):
+        aws = _re.sub(r"IDENTITY_STORE_ID = '[^']*'",
+            "IDENTITY_STORE_ID = '%s'" % data['aws_identity_store_id'], aws)
+    if data.get('aws_application_arn'):
+        aws = _re.sub(r"APPLICATION_ARN\s+=\s+'[^']*'",
+            "APPLICATION_ARN   = '%s'" % data['aws_application_arn'], aws)
+    if data.get('aws_region'):
+        aws = _re.sub(r"AWS_REGION\s+=\s+'[^']*'",
+            "AWS_REGION        = '%s'" % data['aws_region'], aws)
+    with open(aws_path, 'w') as f:
+        f.write(aws)
+
+    # Also save to pritunl settings DB
+    from pritunl import settings as _settings
+    if data.get('sso_saml_url'):
+        _settings.app.sso_saml_url = data['sso_saml_url']
+    if data.get('sso_saml_issuer_url'):
+        _settings.app.sso_saml_issuer_url = data['sso_saml_issuer_url']
+    if data.get('sso_saml_cert'):
+        _settings.app.sso_saml_cert = data['sso_saml_cert']
+    _settings.commit()
+
+    logger.info('SAML config updated via UI', 'sso')
+    return utils.jsonify({'status': 'ok'})
