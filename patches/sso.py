@@ -34,7 +34,7 @@ def _prepare_saml_request(request):
     # regardless of which port the actual request came in on
     return {
         'https': 'on',
-        'http_host': '107.21.31.183:8443',
+        'http_host': 'SERVER_IP:8443',
         'script_name': request.path,
         'get_data': request.args.copy(),
         'post_data': request.form.copy(),
@@ -1361,7 +1361,7 @@ h2{color:#e74c3c;}a{color:#428bca;}</style></head>
 <h2>Authentication Failed</h2>
 <p>Your identity does not match this VPN profile.</p>
 <p>Please download your own profile from
-<a href="https://107.21.31.183/login">here</a>.</p>
+<a href="https://SERVER_IP/login">here</a>.</p>
 </div></body></html>''',
                 content_type="text/html;charset=utf-8",
             )
@@ -1390,11 +1390,11 @@ h2{color:#e74c3c;}a{color:#428bca;}</style></head>
         )
 
         # Redirect to success - Pritunl client is polling for this
-        return flask.redirect('https://107.21.31.183:8443/success')
+        return flask.redirect('https://SERVER_IP:8443/success')
 
     # Normal web flow - profile download
     key_link = org.create_user_key_link(usr.id, one_time=True)
-    redirect_url = 'https://107.21.31.183:8443' + key_link['view_url']
+    redirect_url = 'https://SERVER_IP:8443' + key_link['view_url']
     logger.info('SSO user login: ' + redirect_url, 'sso')
     return flask.redirect(redirect_url)
 
@@ -1413,7 +1413,7 @@ def saml_update_post():
     except Exception:
         saml_conf = {}
 
-    host = flask.request.headers.get('Host', '107.21.31.183').split(':')[0]
+    host = flask.request.headers.get('Host', 'SERVER_IP').split(':')[0]
 
     if data.get('sso_saml_url'):
         saml_conf.setdefault('idp', {})

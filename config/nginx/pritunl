@@ -1,6 +1,6 @@
 server {
     listen 443 ssl;
-    server_name 107.21.31.183;
+    server_name SERVER_IP;
     ssl_certificate /etc/nginx/pritunl-nginx.crt;
     ssl_certificate_key /etc/nginx/pritunl-nginx.key;
     large_client_header_buffers 4 32k;
@@ -18,7 +18,7 @@ server {
     }
 
     location = /sso {
-        return 302 https://107.21.31.183:8443/sso/callback;
+        return 302 https://SERVER_IP:8443/sso/callback;
     }
 
     location = /settings {
@@ -26,54 +26,54 @@ server {
         proxy_ssl_verify off;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
     location = /saml/update {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
     location /saml/ {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
     location = /saml-settings {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183/saml-settings;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP/saml-settings;
     }
     location = /pritunl-admin {
         proxy_pass http://127.0.0.1:9756/login;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183/login;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP/login;
     }
 
     location = /sso/callback {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
 
 
@@ -82,20 +82,20 @@ server {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
 
     location ~ ^/data/ {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
 
     location ~ ^/key/ {
@@ -103,9 +103,9 @@ server {
         proxy_ssl_verify off;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
 
     location / {
@@ -113,15 +113,15 @@ server {
         proxy_ssl_verify off;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP$request_uri;
     }
 }
 
 server {
     listen 8443 ssl;
-    server_name 107.21.31.183;
+    server_name SERVER_IP;
     ssl_certificate /etc/nginx/pritunl-nginx.crt;
     ssl_certificate_key /etc/nginx/pritunl-nginx.key;
 
@@ -129,19 +129,19 @@ server {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
 
     location = /saml-settings {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443/saml-settings;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443/saml-settings;
     }
     location = /saml/update {
         proxy_pass http://127.0.0.1:9756;
@@ -150,16 +150,16 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
     location = /key/request {
         proxy_pass http://127.0.0.1:9756;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header PR-Validated true;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
 
     location ~ ^/key/ {
@@ -167,9 +167,9 @@ server {
         proxy_ssl_verify off;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
 
     location / {
@@ -177,8 +177,8 @@ server {
         proxy_ssl_verify off;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_set_header Host 107.21.31.183;
+        proxy_set_header Host SERVER_IP;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header PR-Forwarded-Url https://107.21.31.183:8443$request_uri;
+        proxy_set_header PR-Forwarded-Url https://SERVER_IP:8443$request_uri;
     }
 }
