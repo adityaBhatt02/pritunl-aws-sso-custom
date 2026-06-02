@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Routes</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #f5f5f5;
+  color: #333;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── Top bar ── */
+.topbar {
+  background: #2b2b2b;
+  color: #ccc;
+  font-size: 13px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar a {
+  color: #ccc;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.topbar a:hover { color: #fff; }
+.topbar svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* ── Page title ── */
+.page-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 20px 0 0 0;
+  text-align: center;
+}
+
+/* ── Main container ── */
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 20px 20px 40px;
+}
+
+/* ── Card ── */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+.card-header {
+  background: #f9f9f9;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #666;
+}
+.card-body { padding: 20px; }
+
+/* ── Form elements ── */
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+.hint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #333;
+  background: #fff;
+  outline: none;
+  transition: border-color .15s;
+  font-family: inherit;
+}
+input[type="text"]:focus { border-color: #66afe9; box-shadow: 0 0 4px rgba(102,175,233,.4); }
+input[type="text"]::placeholder { color: #aaa; }
+
+/* ── NAT checkbox ── */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 15px; height: 15px;
+  cursor: pointer;
+}
+.checkbox-row span {
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+}
+
+/* ── Buttons ── */
+.btn {
+  padding: 6px 14px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, border-color .15s;
+  display: inline-block;
+}
+.btn-primary {
+  background: #428bca;
+  border-color: #357ebd;
+  color: #fff;
+}
+.btn-primary:hover { background: #3276b1; border-color: #285e8e; }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.btn-danger {
+  background: #d9534f;
+  border-color: #d43f3a;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.btn-danger:hover { background: #c9302c; border-color: #ac2925; }
+.btn-default {
+  background: #fff;
+  border-color: #ccc;
+  color: #333;
+}
+.btn-default:hover { background: #e6e6e6; }
+
+/* ── Add form row ── */
+.add-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.add-row .form-group { margin-bottom: 0; flex: 1; min-width: 220px; }
+
+/* ── Table ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: #f9f9f9;
+  border-bottom: 2px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #555;
+  font-size: 12px;
+}
+tbody tr { border-bottom: 1px solid #eee; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f9f9f9; }
+tbody td { padding: 10px 12px; vertical-align: middle; }
+
+.domain-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #337ab7;
+}
+
+.nat-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.nat-on  { background: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6; }
+.nat-off { background: #f2f2f2; color: #888;    border: 1px solid #ddd; }
+
+.ip-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.ip-chip {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #555;
+}
+.last-resolved {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
+.no-ips { color: #aaa; font-style: italic; font-size: 12px; }
+.resolving {
+  display: flex; align-items: center; gap: 6px;
+  color: #aaa; font-size: 12px;
+}
+.spin {
+  width: 10px; height: 10px;
+  border: 2px solid #ddd;
+  border-top-color: #428bca;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ── */
+.empty {
+  padding: 30px;
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ── Alert ── */
+.alert {
+  padding: 8px 14px;
+  border-radius: 3px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: none;
+}
+.alert-success { background: #dff0d8; border: 1px solid #d6e9c6; color: #3c763d; }
+.alert-danger   { background: #f2dede; border: 1px solid #ebccd1; color: #a94442; }
+.alert.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/pritunl-admin">
+    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    Admin Panel
+  </a>
+</div>
+
+<div class="page-title">Domain Routes</div>
+
+<div class="container">
+
+  <!-- Alert -->
+  <div class="alert" id="alert"></div>
+
+  <!-- Add Domain -->
+  <div class="card">
+    <div class="card-header">Add Domain Route</div>
+    <div class="card-body">
+      <p style="color:#666;font-size:13px;margin-bottom:16px;">
+        Domains are resolved every 5 minutes. Resolved IPs are automatically pushed as
+        <code style="background:#f5f5f5;border:1px solid #ddd;padding:1px 5px;border-radius:3px;">/32</code>
+        routes to all connected VPN clients alongside your existing CIDR routes.
+      </p>
+      <div class="add-row">
+        <div class="form-group">
+          <label>Domain</label>
+          <input type="text" id="domainInput" placeholder="e.g. example.com" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-group" style="flex:0;">
+          <label>NAT</label>
+          <div class="checkbox-row">
+            <input type="checkbox" id="natToggle" checked>
+            <span onclick="document.getElementById('natToggle').click()">Enable NAT</span>
+          </div>
+        </div>
+        <div class="form-group" style="flex:0;">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" id="addBtn" onclick="addDomain()">Add Domain</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Domain list -->
+  <div class="card">
+    <div class="card-header">
+      Active Domain Routes
+      <span id="countBadge" style="font-weight:400;color:#aaa;margin-left:6px;"></span>
+    </div>
+    <div id="tableContainer">
+      <div class="empty">No domain routes yet. Add one above.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let routes = [];
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = `alert alert-${type} show`;
+    setTimeout(() => el.className = `alert alert-${type}`, 3000);
+  }
+
+  function formatTime(iso) {
+    if (!iso) return 'Never';
+    const d = new Date(iso);
+    const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+    const pad = n => String(n).padStart(2, '0');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const h = ist.getUTCHours();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return pad(ist.getUTCDate()) + ' ' + months[ist.getUTCMonth()] + ' ' + ist.getUTCFullYear()
+      + ', ' + pad(h12) + ':' + pad(ist.getUTCMinutes()) + ':' + pad(ist.getUTCSeconds()) + ' ' + ampm + ' IST';
+  }
+
+  function renderTable() {
+    const container = document.getElementById('tableContainer');
+    const badge = document.getElementById('countBadge');
+    badge.textContent = routes.length ? `(${routes.length})` : '';
+
+    if (!routes.length) {
+      container.innerHTML = '<div class="empty">No domain routes yet. Add one above.</div>';
+      return;
+    }
+
+    const rows = routes.map(r => {
+      const ipsHtml = r.resolved_ips && r.resolved_ips.length
+        ? `<div class="ip-list">${r.resolved_ips.map(ip => `<span class="ip-chip">${ip}</span>`).join('')}</div>
+           <div class="last-resolved">Last resolved: ${formatTime(r.last_resolved)}</div>`
+        : r.error
+          ? `<span class="no-ips">⚠ ${r.error}</span>`
+          : `<div class="resolving"><span class="spin"></span> Resolving...</div>`;
+
+      return `
+        <tr>
+          <td><span class="domain-cell">${r.domain}</span></td>
+          <td><span class="nat-badge ${r.nat ? 'nat-on' : 'nat-off'}">${r.nat ? 'On' : 'Off'}</span></td>
+          <td>${ipsHtml}</td>
+          <td><button class="btn btn-danger" onclick="deleteDomain('${r.id}','${r.domain}')">Remove</button></td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>NAT</th>
+            <th>Resolved IPs</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  async function loadRoutes() {
+    try {
+      const res = await fetch('/domain-routes/list', { credentials: 'include' });
+      if (res.ok) { routes = await res.json(); renderTable(); }
+    } catch(e) {}
+  }
+
+  async function addDomain() {
+    const input = document.getElementById('domainInput');
+    const nat = document.getElementById('natToggle').checked;
+    const domain = input.value.trim().toLowerCase();
+    if (!domain) { showAlert('Please enter a domain name', 'danger'); return; }
+
+    const btn = document.getElementById('addBtn');
+    btn.disabled = true; btn.textContent = 'Adding...';
+
+    try {
+      const res = await fetch('/domain-routes', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, nat })
+      });
+      if (res.ok) {
+        input.value = '';
+        showAlert(`Domain "${domain}" added. IPs will resolve within 5 minutes.`, 'success');
+        await loadRoutes();
+      } else if (res.status === 409) {
+        showAlert('Domain already exists', 'danger');
+      } else {
+        showAlert('Failed to add domain', 'danger');
+      }
+    } catch(e) { showAlert('Request failed', 'danger'); }
+
+    btn.disabled = false; btn.textContent = 'Add Domain';
+  }
+
+  async function deleteDomain(id, domain) {
+    if (!confirm(`Remove "${domain}" and all its resolved routes?`)) return;
+    try {
+      const res = await fetch(`/domain-routes/${id}`, {
+        method: 'DELETE', credentials: 'include'
+      });
+      if (res.ok) { showAlert(`Removed "${domain}"`, 'success'); await loadRoutes(); }
+      else showAlert('Failed to remove', 'danger');
+    } catch(e) { showAlert('Request failed', 'danger'); }
+  }
+
+  document.getElementById('domainInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addDomain();
+  });
+
+  loadRoutes();
+  setInterval(loadRoutes, 30000);
+</script>
+</body>
+</html>
+
