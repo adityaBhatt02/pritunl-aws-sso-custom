@@ -124,8 +124,10 @@ log "Patches applied"
 log "Step 7: Starting Pritunl to generate SSL cert..."
 systemctl start pritunl
 log "Waiting for Pritunl to generate SSL certificate..."
-for i in $(seq 1 30); do [ -f /etc/nginx/pritunl-nginx.crt ] && break; sleep 2; done
-[ -f /etc/nginx/pritunl-nginx.crt ] || die "Pritunl SSL cert not generated after 60s"
+systemctl start mongod
+sleep 3
+for i in $(seq 1 60); do [ -f /etc/nginx/pritunl-nginx.crt ] && break; sleep 2; done
+[ -f /etc/nginx/pritunl-nginx.crt ] || die "Pritunl SSL cert not generated after 120s"
 log "SSL cert ready"
 log "Step 7: Configuring nginx..."
 
