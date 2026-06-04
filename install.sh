@@ -94,6 +94,7 @@ log "Step 5: Writing environment file..."
 cat > $ENV_FILE << EOF
 SERVER_HOST=$SERVER_HOST
 SERVER_IP=$SERVER_IP
+PRITUNL_EMERGENCY=1
 EOF
 chmod 600 $ENV_FILE
 log "Environment file written to $ENV_FILE"
