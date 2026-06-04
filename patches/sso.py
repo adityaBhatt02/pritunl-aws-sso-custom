@@ -13,6 +13,7 @@ from pritunl import event
 from pritunl import logger
 from pritunl import journal
 
+import os
 import flask
 import hmac
 import hashlib
@@ -34,7 +35,7 @@ def _prepare_saml_request(request):
     # regardless of which port the actual request came in on
     return {
         'https': 'on',
-        'http_host': 'SERVER_IP:8443',
+        'http_host': os.environ.get('SERVER_HOST', 'vpn1.addyops.fun') + ':8443',
         'script_name': request.path,
         'get_data': request.args.copy(),
         'post_data': request.form.copy(),
@@ -511,10 +512,11 @@ def sso_callback_get():
             return flask.abort(500)
         flask.session['sso_org_id'] = str(org_id)
         key_state = flask.request.args.get('key_state')
+        acs_url = saml_settings.get('sp', {}).get('assertionConsumerService', {}).get('url', '')
         if key_state:
             redirect_url = saml_auth.login(return_to=key_state)
         else:
-            redirect_url = saml_auth.login()
+            redirect_url = saml_auth.login(return_to=acs_url)
         return flask.redirect(redirect_url)
 
     sso_mode = settings.app.sso
@@ -1361,7 +1363,7 @@ h2{color:#e74c3c;}a{color:#428bca;}</style></head>
 <h2>Authentication Failed</h2>
 <p>Your identity does not match this VPN profile.</p>
 <p>Please download your own profile from
-<a href="https://SERVER_IP/login">here</a>.</p>
+<a href="https://' + os.environ.get('SERVER_HOST', 'vpn1.addyops.fun') + '/login">here</a>.</p>
 </div></body></html>''',
                 content_type="text/html;charset=utf-8",
             )
@@ -1390,11 +1392,11 @@ h2{color:#e74c3c;}a{color:#428bca;}</style></head>
         )
 
         # Redirect to success - Pritunl client is polling for this
-        return flask.redirect('https://SERVER_IP:8443/success')
+        return flask.redirect('https://' + os.environ.get('SERVER_HOST', 'vpn1.addyops.fun') + ':8443/success')
 
     # Normal web flow - profile download
     key_link = org.create_user_key_link(usr.id, one_time=True)
-    redirect_url = 'https://SERVER_IP:8443' + key_link['view_url']
+    redirect_url = 'https://' + os.environ.get('SERVER_HOST', 'vpn1.addyops.fun') + ':8443' + key_link['view_url']
     logger.info('SSO user login: ' + redirect_url, 'sso')
     return flask.redirect(redirect_url)
 
@@ -1413,7 +1415,7 @@ def saml_update_post():
     except Exception:
         saml_conf = {}
 
-    host = flask.request.headers.get('Host', 'SERVER_IP').split(':')[0]
+    host = flask.request.headers.get('Host', 'vpn1.addyops.fun').split(':')[0]
 
     if data.get('sso_saml_url'):
         saml_conf.setdefault('idp', {})
