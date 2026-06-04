@@ -121,15 +121,19 @@ cp $REPO_DIR/www/domain-routes.html /usr/share/pritunl/www/domain-routes.html
 log "Patches applied"
 
 # ── Step 7: Configure nginx ────────────────────
-log "Step 7: Starting Pritunl to generate SSL cert..."
-systemctl start pritunl
-log "Waiting for Pritunl to generate SSL certificate..."
+log "Step 7: Generating SSL certificate and configuring nginx..."
 systemctl start mongod
 sleep 3
-for i in $(seq 1 60); do [ -f /etc/nginx/pritunl-nginx.crt ] && break; sleep 2; done
-[ -f /etc/nginx/pritunl-nginx.crt ] || die "Pritunl SSL cert not generated after 120s"
-log "SSL cert ready"
-log "Step 7: Configuring nginx..."
+systemctl start pritunl
+sleep 5
+# Generate self-signed cert if Pritunl hasn't created one yet
+if [ ! -f /etc/nginx/pritunl-nginx.crt ]; then
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout /etc/nginx/pritunl-nginx.key \
+        -out /etc/nginx/pritunl-nginx.crt \
+        -subj "/CN=$SERVER_HOST"
+    log "Self-signed SSL cert generated"
+fi
 
 # Copy nginx config and substitute placeholders
 cp $REPO_DIR/config/nginx/pritunl.conf /etc/nginx/conf.d/pritunl.conf
