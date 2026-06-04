@@ -120,6 +120,12 @@ cp $REPO_DIR/www/domain-routes.html /usr/share/pritunl/www/domain-routes.html
 
 log "Patches applied"
 
+# ── Step 6b: Configure Pritunl to internal port only ──
+log "Step 6b: Configuring Pritunl to listen on localhost only..."
+pritunl set app.server_port 9443
+pritunl set app.server_ssl true
+pritunl set app.redirect_server false
+
 # ── Step 7: Configure nginx ────────────────────
 log "Step 7: Generating SSL certificate and configuring nginx..."
 systemctl start mongod
