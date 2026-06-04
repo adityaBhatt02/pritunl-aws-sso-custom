@@ -67,9 +67,7 @@ gpgcheck=1
 enabled=1
 EOF
 
-gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A 2>/dev/null || true
-gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | tee /etc/pki/rpm-gpg/RPM-GPG-KEY-pritunl > /dev/null
-rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-pritunl
+rpm --import https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc
 
 dnf install -y pritunl
 systemctl enable pritunl
@@ -82,7 +80,8 @@ systemctl enable nginx
 log "nginx installed"
 
 # ── Step 4: Clone repo ─────────────────────────
-log "Step 4: Cloning repository..."
+log "Step 4: Installing git and cloning repository..."
+dnf install -y git
 if [ -d "$REPO_DIR" ]; then
     cd $REPO_DIR && git pull origin main
 else
