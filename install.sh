@@ -73,6 +73,11 @@ dnf install -y pritunl
 systemctl enable pritunl
 log "Pritunl installed"
 
+# Install required Python dependencies
+log "Installing Python dependencies..."
+/usr/lib/pritunl/usr/bin/pip3 install python3-saml
+log "Python dependencies installed"
+
 # ── Step 3: Install nginx ──────────────────────
 log "Step 3: Installing nginx..."
 dnf install -y nginx
