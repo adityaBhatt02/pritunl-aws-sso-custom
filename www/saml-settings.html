@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAML SSO Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f5f5;
+      color: #333;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #2c2c2c;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+    }
+    .topbar-icon { color: #aaa; font-size: 15px; }
+    .topbar-title { color: #ddd; font-size: 14px; font-weight: 500; }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 3px;
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .alert.show { display: flex; }
+    .alert-success { background: #dff0d8; border: 1px solid #c3e6cb; color: #2d6a2d; }
+    .alert-error   { background: #f2dede; border: 1px solid #e0b4b4; color: #8b1a1a; }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      margin-bottom: 20px;
+    }
+    .panel-heading {
+      background: #f7f7f7;
+      border-bottom: 1px solid #ddd;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 3px 3px 0 0;
+    }
+    .panel-heading h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge {
+      font-size: 10px;
+      background: #5b9bd5;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .panel-body { padding: 18px; }
+
+    /* SP rows */
+    .sp-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sp-row:last-child { margin-bottom: 0; }
+    .sp-value {
+      flex: 1;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: #444;
+      font-family: 'Courier New', monospace;
+    }
+    .sp-btn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #555;
+      padding: 5px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s;
+    }
+    .sp-btn:hover { background: #f0f0f0; }
+    .sp-btn.tag {
+      background: #f0f4fa;
+      border-color: #b8cde8;
+      color: #4a7db5;
+      cursor: default;
+      font-weight: 600;
+    }
+    .sp-btn.copied { background: #dff0d8; border-color: #c3e6cb; color: #2d6a2d; }
+
+    /* IdP type switcher */
+    .idp-switcher {
+      display: flex;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .idp-tab {
+      flex: 1;
+      padding: 8px 12px;
+      background: #f7f7f7;
+      border: none;
+      border-right: 1px solid #ddd;
+      font-size: 13px;
+      font-weight: 600;
+      color: #777;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .idp-tab:last-child { border-right: none; }
+    .idp-tab:hover { background: #eee; color: #444; }
+    .idp-tab.active {
+      background: #fff;
+      color: #428bca;
+      border-bottom: 2px solid #428bca;
+    }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    .form-group:last-child { margin-bottom: 0; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 5px;
+    }
+    .field-hint { color: #888; font-size: 12px; margin-top: 4px; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: #333;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: #5b9bd5;
+      box-shadow: 0 0 0 2px rgba(91,155,213,0.15);
+    }
+    textarea {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.5;
+    }
+    input::placeholder, textarea::placeholder { color: #bbb; }
+
+    .form-divider { border: none; border-top: 1px solid #eee; margin: 18px 0; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #888;
+      margin-bottom: 14px;
+    }
+
+    /* AWS-only fields */
+    .aws-only { display: block; }
+    .aws-only.hidden { display: none; }
+
+    /* Info box for non-AWS */
+    .info-box {
+      background: #f0f4fa;
+      border: 1px solid #b8cde8;
+      border-radius: 3px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #4a7db5;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .info-box.show { display: block; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+    .btn {
+      padding: 7px 18px;
+      border-radius: 3px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #428bca; color: #fff; border-color: #357ebd; }
+    .btn-primary:hover { background: #3876b4; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-default { background: #fff; color: #444; border-color: #ccc; }
+    .btn-default:hover { background: #f5f5f5; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #ccc;
+      border-top-color: #428bca;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    .spinner.show { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-icon">⚙</span>
+  <span class="topbar-title">SAML SSO Settings</span>
+</div>
+
+<div class="container">
+
+  <div class="alert alert-success" id="alertSuccess">
+    <span id="alertSuccessMsg">Settings saved successfully.</span>
+  </div>
+  <div class="alert alert-error" id="alertError">
+    <span id="alertErrorMsg">Failed to save settings.</span>
+  </div>
+
+  <!-- SP Details -->
+  <div class="panel">
+    <div class="panel-heading">
+      <h3>Service Provider Details</h3>
+      <span class="badge">Copy these to your IdP</span>
+    </div>
+    <div class="panel-body">
+      <div class="sp-row">
+        <span class="sp-value" id="spAcsUrl"></span>
+        <button class="sp-btn" onclick="copyVal('spAcsUrl', this)">Copy</button>
+        <span class="sp-btn tag">ACS URL</span>
+      </div>
+      <div class="sp-row">
+        <span class="sp-value" id="spEntityId"></span>
+        <button class="sp-btn" onclick="copyVal('spEntityId', this)">Copy</button>
+        <span class="sp-btn tag">Entity ID / Audience</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- IdP Settings -->
+  <div class="panel">
+    <div class="panel-heading">
+      <h3>Identity Provider Settings</h3>
+    </div>
+    <div class="panel-body">
+
+      <!-- IdP type tabs -->
+      <div class="idp-switcher">
+        <button class="idp-tab active" id="tabAws"   onclick="setIdp('aws')">AWS IAM Identity Center</button>
+        <button class="idp-tab"        id="tabPrism" onclick="setIdp('prism')">Prism</button>
+        <button class="idp-tab"        id="tabOther" onclick="setIdp('other')">Other SAML 2.0</button>
+      </div>
+
+      <!-- Info box shown for non-AWS -->
+      <div class="info-box" id="infoBox">
+        Fill in your IdP's SSO URL, Issuer URL, and x509 certificate below.
+        The AWS Identity Center fields are not required for this IdP type.
+      </div>
+
+      <div class="form-group">
+        <label>IdP SSO URL (Sign-in URL)</label>
+        <input type="text" id="ssoSamlUrl">
+        <div class="field-hint" id="hintSsoUrl">From AWS: IAM Identity Center sign-in URL</div>
+      </div>
+
+      <div class="form-group">
+        <label>IdP Issuer URL</label>
+        <input type="text" id="ssoSamlIssuerUrl">
+        <div class="field-hint" id="hintIssuerUrl">From AWS: IAM Identity Center SAML issuer URL</div>
+      </div>
+
+      <div class="form-group">
+        <label>IdP x509 Certificate</label>
+        <textarea id="ssoSamlCert" placeholder="MIIDBjCCAe6gAwIBAgIE…"></textarea>
+        <div class="field-hint">Paste only the base64 content (without BEGIN/END CERTIFICATE lines)</div>
+      </div>
+
+      <!-- AWS-only section -->
+      <div class="aws-only" id="awsSection">
+        <hr class="form-divider">
+        <div class="section-label">AWS Identity Center API (Connect-Time Verification)</div>
+
+        <div class="form-group">
+          <label>Identity Store ID</label>
+          <input type="text" id="awsIdentityStoreId" placeholder="d-xxxxxxxxxx">
+          <div class="field-hint">AWS IAM Identity Center → Settings → Identity Store ID</div>
+        </div>
+
+        <div class="form-group">
+          <label>Application ARN</label>
+          <input type="text" id="awsApplicationArn" placeholder="arn:aws:sso::123456789012:application/…">
+          <div class="field-hint">AWS IAM Identity Center → Applications → your app → ARN</div>
+        </div>
+
+        <div class="form-group">
+          <label>AWS Region</label>
+          <input type="text" id="awsRegion" placeholder="ap-south-1">
+          <div class="field-hint">Region where your IAM Identity Center is deployed</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveBtn" onclick="saveSettings()">Save Settings</button>
+        <button class="btn btn-default" onclick="loadSettings()">Reload</button>
+        <div class="spinner" id="spinner"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var currentIdp = 'aws';
+
+  var hints = {
+    aws:   { url: 'From AWS: IAM Identity Center sign-in URL', issuer: 'From AWS: IAM Identity Center SAML issuer URL' },
+    prism: { url: 'From Prism: SSO sign-in URL',               issuer: 'From Prism: Entity ID / Issuer URL' },
+    other: { url: 'Your IdP single sign-on URL',               issuer: 'Your IdP entity ID / issuer URL' },
+  };
+
+  var placeholders = {
+    aws:   { url: 'https://portal.sso.region.amazonaws.com/saml/assertion/…', issuer: 'https://portal.sso.region.amazonaws.com/saml/assertion/…' },
+    prism: { url: 'https://prism.yourcompany.com/saml/sso',                    issuer: 'https://prism.yourcompany.com' },
+    other: { url: 'https://idp.example.com/saml2/sso',                        issuer: 'https://idp.example.com' },
+  };
+
+  function setIdp(type) {
+    currentIdp = type;
+    ['aws','prism','other'].forEach(function(t) {
+      document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === type);
+    });
+    var isAws = type === 'aws';
+    document.getElementById('awsSection').classList.toggle('hidden', !isAws);
+    document.getElementById('infoBox').classList.toggle('show', !isAws);
+    document.getElementById('hintSsoUrl').textContent    = hints[type].url;
+    document.getElementById('hintIssuerUrl').textContent = hints[type].issuer;
+    document.getElementById('ssoSamlUrl').placeholder    = placeholders[type].url;
+    document.getElementById('ssoSamlIssuerUrl').placeholder = placeholders[type].issuer;
+  }
+
+  function showAlert(type, msg) {
+    document.getElementById('alertSuccess').classList.remove('show');
+    document.getElementById('alertError').classList.remove('show');
+    if (type === 'success') {
+      document.getElementById('alertSuccessMsg').textContent = msg;
+      document.getElementById('alertSuccess').classList.add('show');
+      setTimeout(function() { document.getElementById('alertSuccess').classList.remove('show'); }, 4000);
+    } else {
+      document.getElementById('alertErrorMsg').textContent = msg;
+      document.getElementById('alertError').classList.add('show');
+    }
+  }
+
+  function copyVal(elId, btn) {
+    var val = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(val).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function setSpValues() {
+    var host = window.location.hostname;
+    document.getElementById('spAcsUrl').textContent   = 'https://' + host + ':8443/sso/callback';
+    document.getElementById('spEntityId').textContent = 'https://' + host;
+  }
+
+  function loadSettings() {
+    fetch('/saml/config', { credentials: 'include' })
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data) {
+        document.getElementById('ssoSamlUrl').value         = data.sso_saml_url || '';
+        document.getElementById('ssoSamlIssuerUrl').value   = data.sso_saml_issuer_url || '';
+        document.getElementById('ssoSamlCert').value        = data.sso_saml_cert || '';
+        document.getElementById('awsIdentityStoreId').value = data.aws_identity_store_id || '';
+        document.getElementById('awsApplicationArn').value  = data.aws_application_arn || '';
+        document.getElementById('awsRegion').value          = data.aws_region || '';
+
+        var url = data.sso_saml_url || '';
+        if (url.includes('amazonaws.com')) setIdp('aws');
+        else if (url.includes('prism'))    setIdp('prism');
+        else if (url)                      setIdp('other');
+      })
+      .catch(function(e) { showAlert('error', 'Failed to load: ' + e.message); });
+  }
+
+  function saveSettings() {
+    var btn = document.getElementById('saveBtn');
+    var spinner = document.getElementById('spinner');
+    btn.disabled = true;
+    spinner.classList.add('show');
+
+    var payload = {
+      sso_saml_url:        document.getElementById('ssoSamlUrl').value.trim(),
+      sso_saml_issuer_url: document.getElementById('ssoSamlIssuerUrl').value.trim(),
+      sso_saml_cert:       document.getElementById('ssoSamlCert').value.trim(),
+    };
+    if (currentIdp === 'aws') {
+      payload.aws_identity_store_id = document.getElementById('awsIdentityStoreId').value.trim();
+      payload.aws_application_arn   = document.getElementById('awsApplicationArn').value.trim();
+      payload.aws_region            = document.getElementById('awsRegion').value.trim();
+    }
+
+    fetch('/saml/config', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function() { showAlert('success', 'Settings saved successfully.'); })
+    .catch(function(e) { showAlert('error', 'Save failed: ' + e.message); })
+    .finally(function() { btn.disabled = false; spinner.classList.remove('show'); });
+  }
+
+  setSpValues();
+  loadSettings();
+</script>
+
+</body>
+</html>
