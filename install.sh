@@ -118,6 +118,7 @@ cp $REPO_DIR/patches/domain_routes_handler.py $BASE/handlers/domain_routes_handl
 
 # Copy HTML pages
 cp $REPO_DIR/www/domain-routes.html /usr/share/pritunl/www/domain-routes.html
+cp $REPO_DIR/www/saml-settings.html /usr/share/pritunl/www/saml-settings.html
 
 log "Patches applied"
 
