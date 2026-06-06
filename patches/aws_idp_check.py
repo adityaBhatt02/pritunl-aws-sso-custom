@@ -11,10 +11,10 @@ import threading
 log = logging.getLogger('pritunl')
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-IDENTITY_STORE_ID = 'd-9f673c0579'
+IDENTITY_STORE_ID = ''
 INSTANCE_ARN      = 'arn:aws:sso:::instance/ssoins-722326aeca663a25'
-APPLICATION_ARN   = 'arn:aws:sso::876340066855:application/ssoins-659536c14a2ae073/apl-6595a5674cd95f12'
-AWS_REGION        = 'ap-south-1'
+APPLICATION_ARN   = ''
+AWS_REGION        = ''
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Simple in-memory cache to avoid hitting AWS on every packet
