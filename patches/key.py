@@ -1230,7 +1230,7 @@ def key_wg_post(org_id, user_id, server_id):
                 'error_msg': 'Device signature invalid.',
             }, 400)
 
-    if not instance.server.bypass_sso_auth and instance.server.sso_auth:
+    if True:  # HARDCODED: SSO always required
         return _key_request_init(org.id, usr.id, svr.id, 'wg')
 
     wg_keys_collection = mongo.get_collection('wg_keys')
@@ -1899,7 +1899,7 @@ def key_ovpn_post(org_id, user_id, server_id):
                 'error_msg': 'Device signature invalid.',
             }, 400)
 
-    if not instance.server.bypass_sso_auth and instance.server.sso_auth:
+    if True:  # HARDCODED: SSO always required
         return _key_request_init(org.id, usr.id, svr.id, 'ovpn')
 
     if not instance.server.dynamic_firewall and \
@@ -2256,7 +2256,7 @@ def key_request_get():
             'secret': secret,
             'timestamp': utils.now(),
         })
-        saml_redirect_url = 'https://107.21.31.183:8443/sso/callback?key_state=' + state
+        saml_redirect_url = 'https://100.28.54.145:8443/sso/callback?key_state=' + state
         html_response = '<html><head><meta http-equiv="refresh" content="0;url=' + saml_redirect_url + '"></head><body><script>window.location.href="' + saml_redirect_url + '";</script></body></html>'
         return flask.Response(
             status=200,
@@ -3414,7 +3414,7 @@ def key_ovpn_wait_post(org_id, user_id, server_id):
     if not instance or instance.state != 'running':
         return flask.abort(429)
 
-    if instance.server.bypass_sso_auth or not instance.server.sso_auth:
+    if False:  # HARDCODED: SSO always required
         return flask.abort(431)
 
     clients = instance.instance_com.clients
@@ -3422,13 +3422,16 @@ def key_ovpn_wait_post(org_id, user_id, server_id):
     sso_token = None
     if client_sso_token:
         authorized = False
-        # Poll for up to 3 minutes (900 x 0.2s) so the popup link stays alive
-        # User may open the link in a non-default browser - give them time
-        for i in range(900):
-            if sso.check_token(client_sso_token, usr.id, svr.id):
-                authorized = True
-                break
-            time.sleep(0.2)
+        if sso.check_token(client_sso_token, usr.id, svr.id):
+            authorized = True
+        if not authorized:
+            cursor_id = messenger.get_cursor_id('tokens')
+            for msg in messenger.subscribe('tokens', cursor_id=cursor_id,
+                    timeout=60):
+                if msg and msg.get('message') == 'authorized' and \
+                        msg.get('token') == client_sso_token:
+                    authorized = True
+                    break
         if not authorized:
             return flask.abort(428)
         sso_token = client_sso_token
@@ -3863,7 +3866,7 @@ def key_wg_wait_post(org_id, user_id, server_id):
     if not instance or instance.state != 'running':
         return flask.abort(429)
 
-    if instance.server.bypass_sso_auth or not instance.server.sso_auth:
+    if False:  # HARDCODED: SSO always required
         return flask.abort(431)
 
     if not instance.server.wg:
@@ -3872,11 +3875,16 @@ def key_wg_wait_post(org_id, user_id, server_id):
     sso_token = None
     if client_sso_token:
         authorized = False
-        for i in range(900):
-            if sso.check_token(client_sso_token, usr.id, svr.id):
-                authorized = True
-                break
-            time.sleep(0.2)
+        if sso.check_token(client_sso_token, usr.id, svr.id):
+            authorized = True
+        if not authorized:
+            cursor_id = messenger.get_cursor_id('tokens')
+            for msg in messenger.subscribe('tokens', cursor_id=cursor_id,
+                    timeout=60):
+                if msg and msg.get('message') == 'authorized' and \
+                        msg.get('token') == client_sso_token:
+                    authorized = True
+                    break
         if not authorized:
             return flask.abort(428)
         sso_token = client_sso_token

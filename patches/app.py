@@ -20,6 +20,8 @@ import ssl
 import pwd
 
 app = flask.Flask(__name__)
+
+from pritunl.handlers import domain_routes_handler
 app_server = None
 _cur_ssl = None
 _cur_cert = None
