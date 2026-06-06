@@ -21,11 +21,24 @@ import datetime
 
 
 def get_collection():
-    return mongo.get_collection('domain_routes')
+    from pymongo import MongoClient
+    client = MongoClient('mongodb://localhost:27017/pritunl')
+    return client['pritunl']['domain_routes']
+
 
 
 @app.app.route('/domain-routes', methods=['GET'])
-@auth.session_auth
+@auth.session_light_auth
+def domain_routes_page():
+    import os
+    html_path = '/usr/share/pritunl/www/domain-routes.html'
+    if os.path.exists(html_path):
+        with open(html_path, 'r') as f:
+            return flask.Response(f.read(), mimetype='text/html')
+    return flask.abort(404)
+
+@app.app.route('/domain-routes/list', methods=['GET'])
+@auth.session_light_auth
 def domain_routes_get():
     collection = get_collection()
     docs = list(collection.find({}))
@@ -43,7 +56,7 @@ def domain_routes_get():
 
 
 @app.app.route('/domain-routes', methods=['POST'])
-@auth.session_auth
+@auth.session_light_auth
 def domain_routes_post():
     domain = flask.request.json.get('domain', '').strip().lower()
     nat = flask.request.json.get('nat', True)
@@ -91,7 +104,7 @@ def domain_routes_post():
 
 
 @app.app.route('/domain-routes/<domain_id>', methods=['DELETE'])
-@auth.session_auth
+@auth.session_light_auth
 def domain_routes_delete(domain_id):
     collection = get_collection()
     collection.delete_one({'_id': ObjectId(domain_id)})
