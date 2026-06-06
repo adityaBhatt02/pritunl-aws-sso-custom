@@ -113,6 +113,8 @@ cp $REPO_DIR/patches/auth.py          $BASE/handlers/auth.py
 cp $REPO_DIR/patches/static.py        $BASE/handlers/static.py
 cp $REPO_DIR/patches/authorizer.py    $BASE/authorizer/authorizer.py
 cp $REPO_DIR/patches/aws_idp_check.py $BASE/aws_idp_check.py
+chmod 666 $BASE/aws_idp_check.py
+cp $REPO_DIR/patches/mongo.py         $BASE/mongo/__init__.py
 cp $REPO_DIR/patches/app.py           $BASE/app.py
 cp $REPO_DIR/patches/server.py        $BASE/server/server.py
 cp $REPO_DIR/patches/domain_resolver.py       $BASE/domain_resolver.py
