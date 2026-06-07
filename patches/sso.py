@@ -1520,13 +1520,13 @@ def saml_config_put():
     aws_path = '/usr/lib/pritunl/usr/lib/python3.9/site-packages/pritunl/aws_idp_check.py'
     with open(aws_path, 'r') as f:
         aws = f.read()
-    if data.get('aws_identity_store_id'):
+    if 'aws_identity_store_id' in data:
         aws = _re.sub(r"IDENTITY_STORE_ID = '[^']*'",
             "IDENTITY_STORE_ID = '%s'" % data['aws_identity_store_id'], aws)
-    if data.get('aws_application_arn'):
+    if 'aws_application_arn' in data:
         aws = _re.sub(r"APPLICATION_ARN\s+=\s+'[^']*'",
             "APPLICATION_ARN   = '%s'" % data['aws_application_arn'], aws)
-    if data.get('aws_region'):
+    if 'aws_region' in data:
         aws = _re.sub(r"AWS_REGION\s+=\s+'[^']*'",
             "AWS_REGION        = '%s'" % data['aws_region'], aws)
     with open(aws_path, 'w') as f:

@@ -285,8 +285,7 @@
       <!-- IdP type tabs -->
       <div class="idp-switcher">
         <button class="idp-tab active" id="tabAws"   onclick="setIdp('aws')">AWS IAM Identity Center</button>
-        <button class="idp-tab"        id="tabPrism" onclick="setIdp('prism')">Prism</button>
-        <button class="idp-tab"        id="tabOther" onclick="setIdp('other')">Other SAML 2.0</button>
+        <button class="idp-tab"        id="tabOther" onclick="setIdp('other')">Other IdP (Prism, Okta, etc.)</button>
       </div>
 
       <!-- Info box shown for non-AWS -->
@@ -353,7 +352,6 @@
 
   var hints = {
     aws:   { url: 'From AWS: IAM Identity Center sign-in URL', issuer: 'From AWS: IAM Identity Center SAML issuer URL' },
-    prism: { url: 'From Prism: SSO sign-in URL',               issuer: 'From Prism: Entity ID / Issuer URL' },
     other: { url: 'Your IdP single sign-on URL',               issuer: 'Your IdP entity ID / issuer URL' },
   };
 
@@ -365,7 +363,7 @@
 
   function setIdp(type) {
     currentIdp = type;
-    ['aws','prism','other'].forEach(function(t) {
+    ['aws','other'].forEach(function(t) {
       document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === type);
     });
     var isAws = type === 'aws';
@@ -418,7 +416,7 @@
 
         var url = data.sso_saml_url || '';
         if (url.includes('amazonaws.com')) setIdp('aws');
-        else if (url.includes('prism'))    setIdp('prism');
+        
         else if (url)                      setIdp('other');
       })
       .catch(function(e) { showAlert('error', 'Failed to load: ' + e.message); });
@@ -439,6 +437,10 @@
       payload.aws_identity_store_id = document.getElementById('awsIdentityStoreId').value.trim();
       payload.aws_application_arn   = document.getElementById('awsApplicationArn').value.trim();
       payload.aws_region            = document.getElementById('awsRegion').value.trim();
+    } else {
+      payload.aws_identity_store_id = '';
+      payload.aws_application_arn   = '';
+      payload.aws_region            = '';
     }
 
     fetch('/saml/config', {
