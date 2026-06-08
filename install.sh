@@ -380,6 +380,13 @@ log "Fix 6: Setting domain and SSO settings via pritunl CLI..."
 # server_port MUST be 9443 — setting it to 443 causes pritunl-web to try binding
 # port 443 directly, clashing with nginx → web server crash loop
 pritunl set app.server_port 9443
+
+# Restart immediately after setting server_port so pritunl-web moves from 443 to 9443
+# before nginx tries to bind port 443
+log "Restarting pritunl to release port 443..."
+systemctl restart pritunl
+sleep 10
+
 pritunl set app.server_ssl true
 pritunl set app.redirect_server false
 
