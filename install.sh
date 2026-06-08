@@ -394,7 +394,8 @@ pritunl set app.redirect_server false
 # that the Pritunl client opens. If not set, it falls back to public_addr which
 # may be the wrong IP (especially on fresh EC2 with no stored host.public_addr)
 pritunl set app.server_sso_url $SERVER_HOST
-pritunl set app.acme_domain $SERVER_HOST
+# Do NOT set acme_domain — it triggers Let's Encrypt auto-cert which hits rate limits
+# server_sso_url is already set above so SSO URLs will work correctly
 pritunl set app.sso saml
 
 # Disable conf sync - prevents profile sync issues
