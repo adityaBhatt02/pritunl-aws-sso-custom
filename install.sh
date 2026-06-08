@@ -400,7 +400,7 @@ log "Pritunl CLI settings configured"
 # server_hostname → used in various URL building code
 # host public_address / auto_public_host → used in VPN profile 'remote' line generation
 log "Fix 7: Configuring MongoDB host and server settings..."
-python3 << PYEOF
+/usr/lib/pritunl/usr/bin/python3 << PYEOF
 import pymongo
 
 client = pymongo.MongoClient('mongodb://localhost:27017')
@@ -437,7 +437,7 @@ PYEOF
 # An org won't exist at install time (admin creates it via UI), so we try to set
 # it if one already exists (re-installs), and print instructions for fresh installs.
 log "Fix 7b: Setting sso_org if organization exists..."
-python3 << PYEOF
+/usr/lib/pritunl/usr/bin/python3 << PYEOF
 import pymongo
 from bson import ObjectId
 
