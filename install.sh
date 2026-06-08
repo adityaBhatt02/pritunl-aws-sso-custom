@@ -158,8 +158,6 @@ sed -i 's/@auth\.session_auth/@auth.session_light_auth/g' \
 log "session_light_auth fix applied"
 
 # ── FIX 3: mongo/__init__.py - fallback to pymongo for ANY unregistered collection ──
-# This single fix covers: key_sso_pending, domain_routes, and all other unregistered
-# collections — no more whack-a-mole fixing individual handlers
 log "Fix 3: Patching mongo get_collection to fallback to pymongo for any unregistered collection..."
 python3 << PYEOF
 path = '$BASE/mongo/__init__.py'
@@ -183,7 +181,6 @@ print("mongo get_collection fallback fix applied")
 PYEOF
 
 # ── FIX 4: sso.py - always write sp section to settings.json on save ─
-# Without this, saving /saml-settings writes only idp section → sp_not_found error
 log "Fix 4: Patching sso.py to always write sp section on save..."
 python3 << PYEOF
 path = '$BASE/handlers/sso.py'
@@ -213,13 +210,11 @@ else:
 PYEOF
 
 # ── FIX 5: Create SAML directory ─────────────────────────────
-# Without this, PUT /saml/config returns 500 (FileNotFoundError)
 log "Fix 5: Creating SAML settings directory..."
 mkdir -p /etc/pritunl/saml
 log "SAML directory created"
 
 # ── FIX 10: Write initial saml settings.json with correct sp section ─
-# Do this before starting pritunl so the sp section exists from first boot
 log "Fix 10: Writing initial SAML settings.json with sp section..."
 python3 << PYEOF
 import json, os
@@ -267,7 +262,6 @@ sed -i "s/vpn1\.addyops\.fun/$SERVER_HOST/g" /etc/nginx/conf.d/pritunl.conf
 sed -i "s/100\.28\.54\.145/$SERVER_IP/g"     /etc/nginx/conf.d/pritunl.conf
 
 # ── FIX 8: nginx - ensure ALL location blocks have PR-Validated true ──
-# Missing PR-Validated on /domain-routes and /saml-settings blocks caused auth failures
 log "Fix 8: Ensuring all nginx location blocks have PR-Validated true..."
 python3 << 'PYEOF'
 import re
@@ -310,8 +304,6 @@ print("nginx PR-Validated fix applied")
 PYEOF
 
 # ── FIX 9: nginx - ensure PR-Forwarded-Url uses domain not IP ─
-# If nginx config has the IP instead of domain, get_url_root() returns wrong host
-# which causes sso/callback to redirect to the old IP
 log "Fix 9: Ensuring nginx PR-Forwarded-Url uses domain not IP..."
 sed -i "s|PR-Forwarded-Url https://$SERVER_IP|PR-Forwarded-Url https://$SERVER_HOST|g" \
     /etc/nginx/conf.d/pritunl.conf
@@ -355,58 +347,54 @@ systemctl enable pritunl-domain-resolver
 log "Domain resolver service installed"
 
 # ── Step 10: Start pritunl, configure, then start nginx ───────
-# ORDER MATTERS:
-#   1. Start pritunl first so 'pritunl set' works
-#   2. Set server_port 9443 BEFORE nginx starts so pritunl-web doesn't fight for 443
-#   3. Then configure all settings
-#   4. Then start nginx
 log "Step 10: Starting pritunl..."
 systemctl start pritunl
 
-log "Waiting for pritunl to fully initialize..."
+log "Waiting for pritunl to initialize..."
 sleep 12
 
 # ── Set MongoDB URI first — required before any 'pritunl set' command ──
-# Without this, pritunl set fails with "Empty host" error
 log "Configuring MongoDB URI..."
 pritunl set-mongodb mongodb://localhost:27017/pritunl
 sleep 3
 
 # ── FIX 6: Set all domain/SSO settings via pritunl CLI ───────
-# Use 'pritunl set' (not raw pymongo) so settings are written to the live
-# in-memory settings system — raw pymongo writes are cached out on restart
 log "Fix 6: Setting domain and SSO settings via pritunl CLI..."
 
-# server_port MUST be 9443 — setting it to 443 causes pritunl-web to try binding
-# port 443 directly, clashing with nginx → web server crash loop
+# server_port MUST be 9443 so pritunl-web doesn't fight nginx for port 443
 pritunl set app.server_port 9443
 
-# Restart immediately after setting server_port so pritunl-web moves from 443 to 9443
-# before nginx tries to bind port 443
+# Restart immediately so pritunl-web moves to 9443 before nginx tries to bind 443
 log "Restarting pritunl to release port 443..."
 systemctl restart pritunl
 sleep 10
 
+# Wait until pritunl-web is actually listening on 9443 before continuing
+# This replaces the fixed sleep and prevents the nginx startup race
+log "Waiting for pritunl-web to bind port 9443..."
+for i in $(seq 1 30); do
+    ss -tlnp | grep -q ':9443' && break
+    sleep 2
+done
+if ! ss -tlnp | grep -q ':9443'; then
+    warn "pritunl-web did not bind 9443 within 60s - nginx may fail to start"
+fi
+
 pritunl set app.server_ssl true
 pritunl set app.redirect_server false
-
-# These are the critical SSO settings: server_sso_url drives the browser popup URL
-# that the Pritunl client opens. If not set, it falls back to public_addr which
-# may be the wrong IP (especially on fresh EC2 with no stored host.public_addr)
 pritunl set app.server_sso_url $SERVER_HOST
-# Do NOT set acme_domain — it triggers Let's Encrypt auto-cert which hits rate limits
-# server_sso_url is already set above so SSO URLs will work correctly
-pritunl set app.sso saml
 
-# Disable conf sync - prevents profile sync issues
+# Explicitly clear acme_domain so pritunl does NOT try to auto-obtain a
+# Let's Encrypt certificate. Repeated ACME failures (rate limits, port 80
+# challenges) crash the acme_update task which blocks pritunl-web from starting.
+pritunl set app.acme_domain ""
+
+pritunl set app.sso saml
 pritunl set user.conf_sync false
 
 log "Pritunl CLI settings configured"
 
 # ── FIX 7: Set MongoDB settings directly ─────────────────────
-# These fields aren't exposed via 'pritunl set' CLI so we write to MongoDB directly.
-# server_hostname → used in various URL building code
-# host public_address / auto_public_host → used in VPN profile 'remote' line generation
 log "Fix 7: Configuring MongoDB host and server settings..."
 /usr/lib/pritunl/usr/bin/python3 << PYEOF
 import pymongo
@@ -414,20 +402,14 @@ import pymongo
 client = pymongo.MongoClient('mongodb://localhost:27017')
 db = client['pritunl']
 
-# server_hostname used by some URL builders
 db['settings'].update_one(
     {'_id': 'app'},
     {'\$set': {
         'server_hostname': '$SERVER_HOST',
-        # server_port stays 9443 (already set via CLI above)
     }},
     upsert=True
 )
 
-# Fix host public address.
-# auto_public_host takes priority over auto_public_address in host.public_addr property.
-# If it's None, falls through to auto_public_address (detected from EC2 metadata).
-# We set all three to be safe — this ensures 'remote' line in .ovpn has the right IP.
 db['hosts'].update_many(
     {},
     {'\$set': {
@@ -440,14 +422,10 @@ db['hosts'].update_many(
 print("MongoDB host/server settings configured")
 PYEOF
 
-# ── FIX 7b: Set sso_org - requires an org to exist ───────────
-# sso_org must be set or /sso/callback returns "No SSO org configured" → 500.
-# An org won't exist at install time (admin creates it via UI), so we try to set
-# it if one already exists (re-installs), and print instructions for fresh installs.
+# ── FIX 7b: Set sso_org if an org already exists ─────────────
 log "Fix 7b: Setting sso_org if organization exists..."
 /usr/lib/pritunl/usr/bin/python3 << PYEOF
 import pymongo
-from bson import ObjectId
 
 client = pymongo.MongoClient('mongodb://localhost:27017')
 db = client['pritunl']
@@ -463,19 +441,22 @@ if orgs:
     print("sso_org set to:", orgs[0].get('name', str(org_id)), "(" + str(org_id) + ")")
 else:
     print("No org found yet - run this after creating org in admin panel:")
-    print("")
-    print("  sudo python3 -c \"")
-    print("  import pymongo; c=pymongo.MongoClient('mongodb://localhost:27017')")
-    print("  db=c['pritunl']")
-    print("  org=db['organizations'].find_one()")
-    print("  db['settings'].update_one({'_id':'app'},{'\\\$set':{'sso_org':org['_id']}},upsert=True)")
-    print("  print('sso_org set to:', str(org['_id']))\"")
+    print("  sudo /usr/lib/pritunl/usr/bin/python3 /opt/pritunl-aws-sso-custom/scripts/set_sso_org.py")
 PYEOF
 
 # ── Step 11: Restart pritunl to pick up all config changes ────
 log "Step 11: Restarting pritunl to apply all settings..."
 systemctl restart pritunl
-sleep 8
+
+# Wait for pritunl-web to be ready before starting nginx
+log "Waiting for pritunl-web to be ready..."
+for i in $(seq 1 30); do
+    ss -tlnp | grep -q ':9443' && break
+    sleep 2
+done
+if ! ss -tlnp | grep -q ':9443'; then
+    warn "pritunl-web did not come up on 9443 - check: journalctl -u pritunl -n 30"
+fi
 log "Pritunl restarted"
 
 # ── Step 12: Start nginx and resolver ─────────────────────────
@@ -489,7 +470,6 @@ echo ""
 log "Verifying setup..."
 echo ""
 
-# Check services
 for svc in mongod pritunl pritunl-web nginx; do
     if systemctl is-active --quiet $svc; then
         echo -e "  ${GREEN}✓${NC} $svc running"
@@ -498,7 +478,6 @@ for svc in mongod pritunl pritunl-web nginx; do
     fi
 done
 
-# Check key settings
 echo ""
 echo "  Key settings:"
 pritunl get app.server_sso_url 2>/dev/null | sed 's/^/    /'
@@ -506,11 +485,9 @@ pritunl get app.sso 2>/dev/null | sed 's/^/    /'
 pritunl get app.acme_domain 2>/dev/null | sed 's/^/    /'
 pritunl get user.conf_sync 2>/dev/null | sed 's/^/    /'
 
-# Check nginx PR-Validated coverage
 PR_VAL_COUNT=$(grep -c "PR-Validated" /etc/nginx/conf.d/pritunl.conf 2>/dev/null || echo 0)
 echo "    nginx PR-Validated headers: $PR_VAL_COUNT blocks"
 
-# Check SAML dir and sp section
 if [ -f /etc/pritunl/saml/settings.json ]; then
     echo -e "  ${GREEN}✓${NC} /etc/pritunl/saml/settings.json exists"
     python3 -c "
@@ -545,7 +522,7 @@ echo "  2. Login to https://$SERVER_HOST/pritunl-admin"
 echo "     -> Users -> Add Organization"
 echo "     -> Servers -> Add Server -> attach org -> Start Server"
 echo ""
-echo "  3. After creating org in admin panel, run set_sso_org.py:"
+echo "  3. After creating org, set sso_org:"
 echo "     sudo /usr/lib/pritunl/usr/bin/python3 /opt/pritunl-aws-sso-custom/scripts/set_sso_org.py"
 echo ""
 echo "  4. In Prism -> Custom Applications -> Add Application:"
@@ -559,9 +536,8 @@ echo ""
 echo "  5. Fill https://$SERVER_HOST/saml-settings -> Other IdP tab:"
 echo "     - IdP SSO URL:    Login URL from Prism app"
 echo "     - IdP Issuer URL: https://login.prism.cloudkeeper.com/realms/pocinfra"
-echo "     - Certificate:    base64 content from Prism metadata (no BEGIN/END lines)"
+echo "     - Certificate:    base64 cert from Prism metadata (no BEGIN/END lines)"
 echo "     Click Save Settings"
 echo ""
 echo "  6. Test: https://$SERVER_HOST/login -> Sign in with SSO"
 echo ""
-# This is appended as a note - script is complete above
