@@ -112,7 +112,14 @@ In the Pritunl admin panel:
 Pritunl needs to know which Organization to place SSO-authenticated users into. Run this after creating the org:
 
 ```bash
-sudo /usr/lib/pritunl/usr/bin/python3 /opt/pritunl-aws-sso-custom/scripts/set_sso_org.py
+sudo /usr/lib/pritunl/usr/bin/python3 -c "
+import pymongo
+c = pymongo.MongoClient('mongodb://localhost:27017')
+db = c['pritunl']
+org = db['organizations'].find_one()
+db['settings'].update_one({'_id':'app'},{'\$set':{'sso_org':org['_id']}},upsert=True)
+print('sso_org set to:', str(org['_id']))
+"
 ```
 
 This only needs to be done once. All SSO users will be automatically placed into that org.
