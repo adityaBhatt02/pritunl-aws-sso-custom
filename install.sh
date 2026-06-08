@@ -366,6 +366,12 @@ systemctl start pritunl
 log "Waiting for pritunl to fully initialize..."
 sleep 12
 
+# ── Set MongoDB URI first — required before any 'pritunl set' command ──
+# Without this, pritunl set fails with "Empty host" error
+log "Configuring MongoDB URI..."
+pritunl set-mongodb mongodb://localhost:27017/pritunl
+sleep 3
+
 # ── FIX 6: Set all domain/SSO settings via pritunl CLI ───────
 # Use 'pritunl set' (not raw pymongo) so settings are written to the live
 # in-memory settings system — raw pymongo writes are cached out on restart
